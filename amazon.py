@@ -33,6 +33,24 @@ def wait_for_element_to_display(driver, selector, timeout=3, step=.05):
     except TimeoutException:
         raise NoSuchElementException(selector)
 
+def wait_for_text_to_be_present_in_elem(driver, selector, elem_text, timeout=3, step=.05):
+        """wait for text to be to be present in elem"""
+        try:
+            WebDriverWait(driver, timeout, step).until(
+                                EC.text_to_be_present_in_element((By.CSS_SELECTOR, selector), elem_text))
+        except (TimeoutException):
+            raise NoSuchElementException(selector)
+
+def is_element_displayed(driver, selector, timeout=1):
+        """ Returns true if element is displayed, else false"""
+        try:
+            WebDriverWait(driver, timeout).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, selector))
+                )
+            return True
+        except TimeoutException:
+            return False
+
 def select(driver, selector, wait_for_elem_to_be_visible=True, multiples=False):
         """select elements(s) from a page by css selector"""
         try:
@@ -63,12 +81,22 @@ def check_item(data):
             chrome_options.add_argument('--headless')
             chrome_options.add_argument('--no-sandbox')
             driver = webdriver.Chrome(chrome_options=chrome_options)
+    except Exception:
+        raise
 
-        driver.get("https://www.amazon.com/")
+    try:
+        #driver.set_window_size(1500,1500)
         driver.get(item_url)
-        select(driver, ".a-box-group #add-to-cart-button").click()
+        #print item_url
+        if is_element_displayed(driver,"#wishListMainButton"):
+            wish_list_btn = select(driver,"#wishListMainButton")
+            wish_list_btn.location_once_scrolled_into_view
+        add_to_cart_btn = select(driver, ".a-box-group #add-to-cart-button, .a-row #add-to-cart-button")
+        add_to_cart_btn.location_once_scrolled_into_view
+        add_to_cart_btn.click()
+        wait_for_text_to_be_present_in_elem(driver, "#nav-cart-count", "1")
         driver.get("https://www.amazon.com/gp/cart/view.html?ref=nav_cart")
-        item_title = select(driver, ".sc-product-title").text
+        item_title = select(driver, ".sc-product-title, #productTitle").text
         elem = select(driver, "span[data-a-class='quantity']")
         elem.click()
         select(driver, ".quantity-option-10").click()
@@ -78,18 +106,16 @@ def check_item(data):
         try:
             divider = "---------------------------------------------------------------------------------"
             msg = select(driver, "#activeCartViewForm .a-alert-content").text
-            output = "ITEM: %s \nAMZ MSG: %s \n%s\n" %(item_title, msg, divider)
+            output = "URL: %sDESC: %s \nAMZ MSG: %s \n%s" %(item_url, item_title, msg, divider)
             print output
             write_results(output)
         except NoSuchElementException:
-            output = "ITEM: %s \nMARK MSG: This item has more than 999 in stock. No amazon message. \n%s\n" %(item_title,divider)
+            output = "URL: %sDESC: %s \nMARK MSG: This item has more than 999 in stock. No amazon message. \n%s" %(item_url,item_title,divider)
             print output
             write_results(output)
         driver.quit()
-
     except Exception:
-        if len(driver.window_handles) != 0:
-            driver.quit()
+        driver.quit()
         raise
 
 def write_results(output):
@@ -97,7 +123,7 @@ def write_results(output):
         f.write(output)
 
 def delete_results():
-    try: 
+    try:
         os.remove(RESULTS_FILE)
     except Exception:
         pass
@@ -113,13 +139,16 @@ def email_results():
     msg['Subject'] = "AMZ Results for %s" %date_time
     msg['From'] = me
     msg['To'] = COMMASPACE.join([you])
-    part = MIMEApplication(open(RESULTS_FILE, "rb").read())
-    part.add_header('Content-Disposition', 'attachment', filename="results.txt")
-    msg.attach(part)
-    s = smtplib.SMTP_SSL('smtp.gmail.com') 
-    s.login(me, my_password)
-    s.sendmail(me, you, msg.as_string())
-    s.quit()
+    try:
+        part = MIMEApplication(open(RESULTS_FILE, "rb").read())
+        part.add_header('Content-Disposition', 'attachment', filename="results.txt")
+        msg.attach(part)
+        s = smtplib.SMTP_SSL('smtp.gmail.com') 
+        s.login(me, my_password)
+        s.sendmail(me, you, msg.as_string())
+        s.quit()
+    except IOError:
+        print "No results to email"
 
 def main(browser, processes):
     delete_results()
@@ -130,9 +159,10 @@ def main(browser, processes):
     for item_url in items_url:
         list_items.append((item_url, browser))
     p.map(check_item, list_items)
-    email_results()
     # list_items = ('https://www.amazon.com/Premium-Plastic-Plates-Alpha-Sigma/dp/B01MSOOPPL/ref=pd_rhf_sc_s_cp_0_3?_encoding=UTF8&pd_rd_i=B01MSOOPPL&pd_rd_r=WVJVA6Z5PJ87XRDCGRZ8&pd_rd_w=iDo7q&pd_rd_wg=Ase0d&psc=1&refRID=WVJVA6Z5PJ87XRDCGRZ8\n', 'chrome-headless')
-    #check_item(list_items)
+    # for item in list_items:
+    #     check_item(item)
+    email_results()
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
