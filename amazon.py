@@ -106,11 +106,11 @@ def check_item(data):
         try:
             divider = "---------------------------------------------------------------------------------"
             msg = select(driver, "#activeCartViewForm .a-alert-content").text
-            output = "URL: %sDESC: %s \nAMZ MSG: %s \n%s" %(item_url, item_title, msg, divider)
+            output = "URL: %sDESC: %s \nAMZ MSG: %s \n%s\n" %(item_url, item_title, msg, divider)
             print output
             write_results(output)
         except NoSuchElementException:
-            output = "URL: %sDESC: %s \nMARK MSG: This item has more than 999 in stock. No amazon message. \n%s" %(item_url,item_title,divider)
+            output = "URL: %sDESC: %s \nMARK MSG: This item has more than 999 in stock. No amazon message. \n%s\n" %(item_url,item_title,divider)
             print output
             write_results(output)
         driver.quit()
