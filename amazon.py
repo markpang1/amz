@@ -94,7 +94,10 @@ def check_item(data):
         add_to_cart_btn = select(driver, ".a-box-group #add-to-cart-button, .a-row #add-to-cart-button")
         add_to_cart_btn.location_once_scrolled_into_view
         add_to_cart_btn.click()
-        wait_for_text_to_be_present_in_elem(driver, "#nav-cart-count", "1")
+        try:
+            wait_for_text_to_be_present_in_elem(driver, "#nav-cart-count", "1")
+        except NoSuchElementException:
+            print item_url
         driver.get("https://www.amazon.com/gp/cart/view.html?ref=nav_cart")
         item_title = select(driver, ".sc-product-title, #productTitle").text
         elem = select(driver, "span[data-a-class='quantity']")
@@ -134,18 +137,18 @@ def email_results():
     COMMASPACE = ', '
     me = "markpang1@gmail.com" 
     my_password = "Brown123" 
-    you = "markpang1@gmail.com"
+    recipients = ["markpang1@gmail.com", "geoffrey.geogoods@gmail.com"]
     msg = MIMEMultipart()
     msg['Subject'] = "AMZ Results for %s" %date_time
     msg['From'] = me
-    msg['To'] = COMMASPACE.join([you])
+    msg['To'] = COMMASPACE.join(recipients)
     try:
         part = MIMEApplication(open(RESULTS_FILE, "rb").read())
         part.add_header('Content-Disposition', 'attachment', filename="results.txt")
         msg.attach(part)
         s = smtplib.SMTP_SSL('smtp.gmail.com') 
         s.login(me, my_password)
-        s.sendmail(me, you, msg.as_string())
+        s.sendmail(me, recipients, msg.as_string())
         s.quit()
     except IOError:
         print "No results to email"
