@@ -70,8 +70,9 @@ def select(driver, selector, wait_for_elem_to_be_visible=True, multiples=False):
         return element
 
 def check_item(data):
-    item_url = data[0]
-    browser = data[1]
+    index = data[0]
+    item_url = data[1]
+    browser = data[2]
     try:
         if browser == "chrome":
             driver=webdriver.Chrome()
@@ -87,6 +88,7 @@ def check_item(data):
     try:
         #driver.set_window_size(1500,1500)
         driver.get(item_url)
+        item_url=item_url.replace("\n", "")
         #print item_url
         if is_element_displayed(driver,"#wishListMainButton"):
             wish_list_btn = select(driver,"#wishListMainButton")
@@ -99,7 +101,7 @@ def check_item(data):
         except NoSuchElementException:
             print item_url
         driver.get("https://www.amazon.com/gp/cart/view.html?ref=nav_cart")
-        item_title = select(driver, ".sc-product-title, #productTitle").text
+        item_title = select(driver, ".sc-product-title, #productTitle").text.replace(",", "")
         elem = select(driver, "span[data-a-class='quantity']")
         elem.click()
         select(driver, ".quantity-option-10").click()
@@ -108,12 +110,12 @@ def check_item(data):
         select(driver, "a[data-action='update']").click()
         try:
             divider = "---------------------------------------------------------------------------------"
-            msg = select(driver, "#activeCartViewForm .a-alert-content").text
-            output = "URL: %sDESC: %s \nAMZ MSG: %s \n%s\n" %(item_url, item_title, msg, divider)
+            msg = select(driver, "#activeCartViewForm .a-alert-content").text.replace(",", "")
+            output = "%s,%s,%s,%s" %(index, item_url, item_title, msg)
             print output
             write_results(output)
         except NoSuchElementException:
-            output = "URL: %sDESC: %s \nMARK MSG: This item has more than 999 in stock. No amazon message. \n%s\n" %(item_url,item_title,divider)
+            output = "%s,%s,%s,MARK MSG: This item has more than 999 in stock. No amazon message." %(index,item_url,item_title)
             print output
             write_results(output)
         driver.quit()
@@ -159,12 +161,14 @@ def main(browser, processes):
     with open(ITEMS_FILE) as f:
         items_url = f.readlines()
     list_items = []
+    idx=1
     for item_url in items_url:
-        list_items.append((item_url, browser))
-    p.map(check_item, list_items)
+        list_items.append((idx, item_url, browser))
+        idx+=1
+    # p.map(check_item, list_items)
     # list_items = ('https://www.amazon.com/Premium-Plastic-Plates-Alpha-Sigma/dp/B01MSOOPPL/ref=pd_rhf_sc_s_cp_0_3?_encoding=UTF8&pd_rd_i=B01MSOOPPL&pd_rd_r=WVJVA6Z5PJ87XRDCGRZ8&pd_rd_w=iDo7q&pd_rd_wg=Ase0d&psc=1&refRID=WVJVA6Z5PJ87XRDCGRZ8\n', 'chrome-headless')
-    # for item in list_items:
-    #     check_item(item)
+    for item in list_items:
+        check_item(item)
     email_results()
 
 if __name__ == '__main__':
