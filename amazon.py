@@ -16,29 +16,33 @@ HOME = os.getenv("HOME")
 AMZ = os.path.join(HOME, 'devel', 'amz')
 RESULTS_FILE = os.path.join(AMZ, "results.txt")
 ITEMS_FILE = os.path.join(AMZ, "items.txt")
+TIMEOUT = 10
 
-def wait_for_any_element_to_display(driver, selector, timeout=3, step=.05):
+def wait_for_any_element_to_display(driver, selector, timeout=TIMEOUT, step=.05):
     """ wait for any of multiple elements to be visible on page """
     try:
         return WebDriverWait(driver, timeout, step).until(
             EC.visibility_of_any_elements_located((By.CSS_SELECTOR, selector))
         )
     except TimeoutException:
+        driver.save_screenshot("error.png")
         raise NoSuchElementException(selector)
 
-def wait_for_element_to_display(driver, selector, timeout=3, step=.05):
+def wait_for_element_to_display(driver, selector, timeout=TIMEOUT, step=.05):
     """wait for element to be visible on page"""
     try:
         WebDriverWait(driver, timeout, step).until(EC.visibility_of_element_located((By.CSS_SELECTOR, selector)))
     except TimeoutException:
+        driver.save_screenshot("error.png")
         raise NoSuchElementException(selector)
 
-def wait_for_text_to_be_present_in_elem(driver, selector, elem_text, timeout=3, step=.05):
+def wait_for_text_to_be_present_in_elem(driver, selector, elem_text, timeout=TIMEOUT, step=.05):
         """wait for text to be to be present in elem"""
         try:
             WebDriverWait(driver, timeout, step).until(
                                 EC.text_to_be_present_in_element((By.CSS_SELECTOR, selector), elem_text))
         except (TimeoutException):
+            driver.save_screenshot("error.png")
             raise NoSuchElementException(selector)
 
 def is_element_displayed(driver, selector, timeout=1):
@@ -49,6 +53,7 @@ def is_element_displayed(driver, selector, timeout=1):
                 )
             return True
         except TimeoutException:
+            driver.save_screenshot("error.png")
             return False
 
 def select(driver, selector, wait_for_elem_to_be_visible=True, multiples=False):
@@ -56,15 +61,16 @@ def select(driver, selector, wait_for_elem_to_be_visible=True, multiples=False):
         try:
             if wait_for_elem_to_be_visible:
                 if multiples:
-                    wait_for_any_element_to_display(driver, selector, timeout=3)
+                    wait_for_any_element_to_display(driver, selector, timeout=TIMEOUT)
                 else:
-                    wait_for_element_to_display(driver, selector, timeout=3)
+                    wait_for_element_to_display(driver, selector, timeout=TIMEOUT)
             if multiples:
                 element = driver.find_elements_by_css_selector(selector)
             else:
                 element = driver.find_element_by_css_selector(selector)
 
         except TimeoutException:
+            driver.save_screenshot("error.png")
             raise NoSuchElementException()
 
         return element
@@ -111,11 +117,11 @@ def check_item(data):
         try:
             divider = "---------------------------------------------------------------------------------"
             msg = select(driver, "#activeCartViewForm .a-alert-content").text.replace(",", "")
-            output = "%s,%s,%s,%s" %(index, item_url, item_title, msg)
+            output = "%s,%s,%s,%s\n" %(index, item_url, item_title, msg)
             print output
             write_results(output)
         except NoSuchElementException:
-            output = "%s,%s,%s,MARK MSG: This item has more than 999 in stock. No amazon message." %(index,item_url,item_title)
+            output = "%s,%s,%s,MARK MSG: This item has more than 999 in stock. No amazon message.\n" %(index,item_url,item_title)
             print output
             write_results(output)
         driver.quit()
@@ -140,6 +146,7 @@ def email_results():
     me = "markpang1@gmail.com" 
     my_password = "Brown123" 
     recipients = ["markpang1@gmail.com", "geoffrey.geogoods@gmail.com"]
+    #recipients = ["markpang1@gmail.com"]
     msg = MIMEMultipart()
     msg['Subject'] = "AMZ Results for %s" %date_time
     msg['From'] = me
